@@ -10,6 +10,9 @@
 #ifndef OPENRP1210_RP1210_H__
 #define OPENRP1210_RP1210_H__
 
+#include "OpenRP1210.h"
+#include <string.h>
+
 #if defined _WIN32 || defined _WIN64
 	#include <Windows.h>
 	#define DLLEXPORT OpenRP1210API
