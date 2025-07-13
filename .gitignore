@@ -26,3 +26,5 @@ bld/
 .vs/
 
 doc/out/**
+config.bat
+node_modules

@@ -103,6 +103,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>Userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>OpenRP1210.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -124,6 +125,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>Userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>OpenRP1210.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -141,6 +143,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>Userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>OpenRP1210.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -162,6 +165,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>Userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>OpenRP1210.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -169,9 +173,11 @@
     <ClCompile Include="..\..\..\lib\src\Core.c" />
     <ClCompile Include="..\..\..\lib\src\platform\win\dllmain.c" />
     <ClCompile Include="..\..\..\lib\src\platform\win\Platform.c" />
-    <ClCompile Include="..\..\..\lib\src\RP1210.c" />
+    
     <ClCompile Include="..\..\..\lib\src\RP1210Ini.c" />
     <ClCompile Include="..\..\..\lib\src\util\Ini.c" />
+    <ClCompile Include="..\..\..\lib\src\platform\win\EcmSimulation.c" />
+    <ClCompile Include="..\..\..\lib\src\platform\win\EcmRp1210.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\lib\inc\OpenRP1210\Common.h" />
@@ -184,6 +190,7 @@
     <ClInclude Include="..\..\..\lib\inc\OpenRP1210\RP1210B.h" />
     <ClInclude Include="..\..\..\lib\inc\OpenRP1210\RP1210C.h" />
     <ClInclude Include="..\..\..\lib\inc\OpenRP1210\util\Ini.h" />
+    <ClInclude Include="..\..\..\lib\src\platform\win\EcmSimulation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
