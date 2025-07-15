@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <windows.h>
 
 //------------------------------------------------------------------------------
 // RP1210C Constants and Definitions
@@ -113,6 +114,7 @@ static BOOL g_initialized = FALSE;
 static CRITICAL_SECTION g_global_lock;
 static HANDLE g_simulation_thread = NULL;
 static BOOL g_simulation_running = FALSE;
+static DWORD g_response_delay_ms = 0; // Default: no delay
 
 //------------------------------------------------------------------------------
 // Function Prototypes
@@ -143,6 +145,10 @@ BOOL InitializeVirtualAdapter(void)
     }
 
     InitializeCriticalSection(&g_global_lock);
+
+    // Read delay from INI file
+    g_response_delay_ms = GetPrivateProfileIntA(
+        "VirtualAdapter", "ResponseDelayMs", 0, ".\\VirtualRP1210Adapter.ini");
 
     // Initialize devices
     for (int i = 0; i < MAX_DEVICES; i++) {
@@ -374,6 +380,8 @@ short DLLEXPORT WINAPI RP1210_ClientConnect(
         return ERR_DLL_NOT_INITIALIZED;
     }
 
+    if (g_response_delay_ms > 0) Sleep(g_response_delay_ms);
+
     if (!IsDeviceValid(nDeviceId)) {
         return ERR_INVALID_DEVICE;
     }
@@ -437,6 +445,8 @@ short DLLEXPORT WINAPI RP1210_ClientDisconnect(short nClientID)
         return ERR_DLL_NOT_INITIALIZED;
     }
 
+    if (g_response_delay_ms > 0) Sleep(g_response_delay_ms);
+
     ClientConnection* client = GetClient(nClientID);
     if (!client) {
         return ERR_INVALID_CLIENT_ID;
@@ -468,6 +478,8 @@ short DLLEXPORT WINAPI RP1210_SendMessage(
     if (!g_initialized) {
         return ERR_DLL_NOT_INITIALIZED;
     }
+
+    if (g_response_delay_ms > 0) Sleep(g_response_delay_ms);
 
     ClientConnection* client = GetClient(nClientID);
     if (!client || !client->connected) {
@@ -512,6 +524,8 @@ short DLLEXPORT WINAPI RP1210_ReadMessage(
     if (!g_initialized) {
         return ERR_DLL_NOT_INITIALIZED;
     }
+
+    if (g_response_delay_ms > 0) Sleep(g_response_delay_ms);
 
     ClientConnection* client = GetClient(nClientID);
     if (!client || !client->connected) {
@@ -559,6 +573,8 @@ short DLLEXPORT WINAPI RP1210_SendCommand(
         return ERR_DLL_NOT_INITIALIZED;
     }
 
+    if (g_response_delay_ms > 0) Sleep(g_response_delay_ms);
+
     ClientConnection* client = GetClient(nClientID);
     if (!client || !client->connected) {
         return ERR_INVALID_CLIENT_ID;
@@ -605,6 +621,8 @@ void DLLEXPORT WINAPI RP1210_ReadVersion(
     char* fpchAPIMajorVersion,
     char* fpchAPIMinorVersion)
 {
+    if (g_response_delay_ms > 0) Sleep(g_response_delay_ms);
+
     if (fpchDLLMajorVersion) *fpchDLLMajorVersion = '1';
     if (fpchDLLMinorVersion) *fpchDLLMinorVersion = '0';
     if (fpchAPIMajorVersion) *fpchAPIMajorVersion = '1';
@@ -621,6 +639,8 @@ short DLLEXPORT WINAPI RP1210_ReadDetailedVersion(
     if (!g_initialized) {
         return ERR_DLL_NOT_INITIALIZED;
     }
+
+    if (g_response_delay_ms > 0) Sleep(g_response_delay_ms);
 
     if (fpchAPIVersionInfo) {
         strcpy_s(fpchAPIVersionInfo, 80, "Virtual RP1210 Adapter API v1.0.0");
@@ -646,6 +666,8 @@ short DLLEXPORT WINAPI RP1210_GetHardwareStatus(
         return ERR_DLL_NOT_INITIALIZED;
     }
 
+    if (g_response_delay_ms > 0) Sleep(g_response_delay_ms);
+
     ClientConnection* client = GetClient(nClientID);
     if (!client || !client->connected) {
         return ERR_INVALID_CLIENT_ID;
@@ -666,6 +688,8 @@ short DLLEXPORT WINAPI RP1210_GetHardwareStatus(
 // RP1210_GetErrorMsg
 short DLLEXPORT WINAPI RP1210_GetErrorMsg(short ErrorCode, char* fpchMessage)
 {
+    if (g_response_delay_ms > 0) Sleep(g_response_delay_ms);
+
     if (!fpchMessage) {
         return ERR_INVALID_COMMAND;
     }
@@ -731,6 +755,8 @@ short DLLEXPORT WINAPI RP1210_GetLastErrorMsg(
     char* fpchMessage,
     short nClientID)
 {
+    if (g_response_delay_ms > 0) Sleep(g_response_delay_ms);
+
     if (SubErrorCode) {
         *SubErrorCode = 0;
     }
