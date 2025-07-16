@@ -511,6 +511,26 @@ short DLLEXPORT WINAPI RP1210_SendMessage(
         QueueMessage(&client->rx_queue, &msg);
     }
 
+    // After memcpy(msg.data, fpchClientMessage, nMessageSize);
+    if (nMessageSize >= 8) {
+        // Extract PGN from CAN ID (first 4 bytes)
+        DWORD can_id = (msg.data[0] << 24) | (msg.data[1] << 16) | (msg.data[2] << 8) | msg.data[3];
+        DWORD pgn = (can_id >> 8) & 0x3FFFF;
+
+        // Check for J1939 Request PGN
+        if (pgn == (J1939_PGN_REQUEST >> 8)) {
+            // Requested PGN is in data[4..6]
+            DWORD requested_pgn = (msg.data[4]) | (msg.data[5] << 8) | (msg.data[6] << 16);
+            if (requested_pgn == J1939_PGN_ADDRESS_CLAIMED) {
+                // Respond with Address Claimed
+                RP1210Message resp;
+                BYTE address_claimed_data[8] = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, J1939_ECM_SOURCE_ADDRESS };
+                BuildJ1939Message(&resp, J1939_PGN_ADDRESS_CLAIMED, address_claimed_data, 8);
+                QueueMessage(&client->rx_queue, &resp);
+            }
+        }
+    }
+
     return NO_ERRORS;
 }
 
@@ -788,47 +808,49 @@ void GenerateSimulatedMessages(void)
 {
     static DWORD message_counter = 0;
 
-    // Generate some simulated CAN messages for connected clients
+    // J1939 Address Claimed data (8 bytes, unique name, arbitrary for simulation)
+    BYTE address_claimed_data[8] = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, J1939_ECM_SOURCE_ADDRESS };
+
+    // J1939 Engine Speed data (8 bytes, only bytes 4-5 used for speed in 0.125 rpm/bit)
+    BYTE engine_speed_data[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x13, 0xFF, 0xFF }; // 0x1300 = 4864 * 0.125 = 608 rpm
+
     for (int i = 0; i < MAX_CLIENTS; i++) {
         ClientConnection* client = &g_clients[i];
 
         if (client->client_id >= 0 && client->connected && client->pass_all_filters) {
-            // Create a simulated CAN message
+            // Address Claimed
             RP1210Message msg;
-            msg.timestamp = GetCurrentTimestamp();
+            BuildJ1939Message(&msg, J1939_PGN_ADDRESS_CLAIMED, address_claimed_data, 8);
+            QueueMessage(&client->rx_queue, &msg);
 
-            if (client->protocol == PROTOCOL_CAN || client->protocol == PROTOCOL_J1939) {
-                // Standard CAN message format
-                msg.message_type = STANDARD_CAN;
-
-                // Timestamp (4 bytes)
-                *(DWORD*)&msg.data[0] = msg.timestamp;
-
-                // Message type (1 byte)
-                msg.data[4] = STANDARD_CAN;
-
-                // CAN ID (2 bytes for standard CAN)
-                WORD can_id = 0x123 + (message_counter % 8);
-                msg.data[5] = (BYTE)(can_id >> 8);
-                msg.data[6] = (BYTE)(can_id & 0xFF);
-
-                // Data payload (8 bytes max)
-                msg.data[7] = (BYTE)(message_counter & 0xFF);
-                msg.data[8] = (BYTE)((message_counter >> 8) & 0xFF);
-                msg.data[9] = (BYTE)((message_counter >> 16) & 0xFF);
-                msg.data[10] = (BYTE)((message_counter >> 24) & 0xFF);
-                msg.data[11] = 0x55; // Test pattern
-                msg.data[12] = 0xAA; // Test pattern
-                msg.data[13] = 0x00;
-                msg.data[14] = 0x00;
-
-                msg.length = 15; // 4 (timestamp) + 1 (type) + 2 (ID) + 8 (data)
-
-                // Queue the message if there's space
+            // Engine Speed (every 10th cycle)
+            if (message_counter % 10 == 0) {
+                BuildJ1939Message(&msg, J1939_PGN_ENGINE_SPEED, engine_speed_data, 8);
                 QueueMessage(&client->rx_queue, &msg);
             }
         }
     }
 
     message_counter++;
+}
+
+// J1939 PGNs
+#define J1939_PGN_ADDRESS_CLAIMED 0x00EE00  // PGN 60928
+#define J1939_PGN_REQUEST         0x00EA00  // PGN 59904
+#define J1939_PGN_ENGINE_SPEED    0x00F004  // PGN 61444
+
+// J1939 Source Address for our virtual ECM
+#define J1939_ECM_SOURCE_ADDRESS  0x00
+
+void BuildJ1939Message(RP1210Message* msg, DWORD pgn, BYTE* data, WORD data_len) {
+    msg->timestamp = GetCurrentTimestamp();
+    msg->message_type = STANDARD_CAN;
+    // J1939 CAN ID: Priority (3) | Reserved (1) | Data Page (1) | PGN (18) | Source Address (8)
+    DWORD can_id = (6 << 26) | (pgn << 8) | J1939_ECM_SOURCE_ADDRESS;
+    msg->data[0] = (BYTE)(can_id >> 24);
+    msg->data[1] = (BYTE)(can_id >> 16);
+    msg->data[2] = (BYTE)(can_id >> 8);
+    msg->data[3] = (BYTE)(can_id);
+    memcpy(&msg->data[4], data, data_len);
+    msg->length = 4 + data_len;
 }
